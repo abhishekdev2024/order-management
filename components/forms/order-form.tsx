@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import useGetProducts from "@/hooks/useGetProducts";
-import useAddOrder from "@/hooks/useAddOrder";
+import useAddOrder from "@/hooks/useOrderMutation";
+import useToaster from "@/hooks/useToaster";
 
 interface OrderFormProps {
   inEditMode?: boolean;
@@ -11,22 +12,37 @@ interface OrderFormProps {
 
 const OrderForm = ({ inEditMode }: OrderFormProps) => {
   const router = useRouter();
-  const { data, isLoading, isError } = useGetProducts();
+  const pathName = usePathname();
+  const { warning } = useToaster();
+  const { data: productsData } = useGetProducts();
   const [description, setDescription] = useState("");
   const [productIds, setProductIds] = useState<number[]>([]);
+
   const { mutateAsync: addOrder, isPending: addPending } = useAddOrder("add");
 
   const { mutateAsync: updateOrder, isPending: updatePending } =
     useAddOrder("update");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!description.trim()) {
+      warning("Order description is required.");
+      return;
+    }
+
+    if (productIds.length === 0) {
+      warning("Please select at least one product.");
+      return;
+    }
+
     const orderData = { description, productIds };
     console.log(orderData);
     if (inEditMode) {
       // updateOrder(orderData);
+      console.log("EDIT MDOE", pathName, orderData);
     } else {
-      // addOrder(orderData);
+      await addOrder(orderData);
     }
   };
 
@@ -42,7 +58,7 @@ const OrderForm = ({ inEditMode }: OrderFormProps) => {
     );
   };
 
-  const products = data?.data || [];
+  const products = productsData?.data || [];
 
   // if (isLoading) return <p>Loading products...</p>;
   // if (isError) return <p>Failed to load products.</p>;
@@ -80,30 +96,36 @@ const OrderForm = ({ inEditMode }: OrderFormProps) => {
             Select Products
           </label>
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-100"
-              >
-                <input
-                  type="checkbox"
-                  id={`product-${product.id}`}
-                  className="h-5 w-5 text-blue-600 focus:ring focus:ring-blue-200"
-                  checked={productIds.includes(product.id)}
-                  onChange={() => handleCheckboxChange(product.id)}
-                />
-                <label
-                  htmlFor={`product-${product.id}`}
-                  className="text-gray-700"
+            {products.length > 0 ? (
+              products.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-100"
                 >
-                  <span className="font-medium">{product.productName}</span>
-                  <br />
-                  <span className="text-sm text-gray-500">
-                    {product.productDescription}
-                  </span>
-                </label>
-              </div>
-            ))}
+                  <input
+                    type="checkbox"
+                    id={`product-${product.id}`}
+                    className="h-5 w-5 text-blue-600 focus:ring focus:ring-blue-200"
+                    checked={productIds.includes(product.id)}
+                    onChange={() => handleCheckboxChange(product.id)}
+                  />
+                  <label
+                    htmlFor={`product-${product.id}`}
+                    className="text-gray-700"
+                  >
+                    <span className="font-medium">{product.productName}</span>
+                    <br />
+                    <span className="text-sm text-gray-500">
+                      {product.productDescription}
+                    </span>
+                  </label>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm">
+                No products available. Please check back later.
+              </p>
+            )}
           </div>
         </div>
 

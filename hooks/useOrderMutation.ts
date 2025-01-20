@@ -4,7 +4,7 @@ import { queryKeys } from "./query-key";
 import useToaster from "./useToaster";
 
 type OrderData = {
-  orderDescription: string;
+  description: string;
   productIds: number[];
 } & { orderId?: number };
 
