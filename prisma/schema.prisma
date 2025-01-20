@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id               Int      @id @default(autoincrement())
+  orderDescription String   @map("order_description") @db.VarChar(100)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  orderProductMap OrderProductMap[]
+}
+
+model Products {
+  id                 Int     @id @default(autoincrement())
+  productName        String  @map("product_name") @db.VarChar(100)
+  productDescription String? @map("product_description") @db.Text
+
+  orderProductMap OrderProductMap[]
+}
+
+model OrderProductMap {
+  id        Int @id @default(autoincrement())
+  orderId   Int @map("order_id")
+  productId Int @map("product_id")
+
+  // Foreign Key Relations
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, productId])
+}
