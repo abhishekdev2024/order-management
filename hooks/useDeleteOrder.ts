@@ -9,9 +9,9 @@ const deleteOrder = async (orderId: number) => {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to delete order");
+    const errorDetails = await response.json();
+    throw new Error(errorDetails.message || "Failed to delete order");
   }
-
   return response.json();
 };
 

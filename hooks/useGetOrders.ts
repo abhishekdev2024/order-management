@@ -8,9 +8,9 @@ const fetchOrders = async (): Promise<Pagination<Order>> => {
   const response = await fetch("/api/orders");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch orders");
+    const errorDetails = await response.json();
+    throw new Error(errorDetails.message || "Failed to fetch order");
   }
-
   return response.json();
 };
 

@@ -8,7 +8,8 @@ const fetchProducts = async (): Promise<Pagination<Products>> => {
   const response = await fetch("/api/products");
 
   if (!response.ok) {
-    throw new Error("Failed to fetch products");
+    const errorDetails = await response.json();
+    throw new Error(errorDetails.message || "Failed to fetch products");
   }
 
   return response.json();

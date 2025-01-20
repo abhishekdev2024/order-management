@@ -3,10 +3,29 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-key";
 import useToaster from "./useToaster";
 
-interface OrderData {
+type OrderData = {
   orderDescription: string;
   productIds: number[];
-}
+} & { orderId?: number };
+
+const updateOrder = async (orderData: OrderData) => {
+  const { orderId, ...rest } = orderData;
+  if (!orderId) throw new Error("Order ID is required");
+  const response = await fetch(`/api/orders/${orderId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(rest),
+  });
+
+  if (!response.ok) {
+    const errorDetails = await response.json();
+    throw new Error(errorDetails.message || "Failed to update order");
+  }
+
+  return response.json();
+};
 
 const addOrder = async (orderData: OrderData) => {
   const response = await fetch("/api/orders", {
@@ -18,28 +37,41 @@ const addOrder = async (orderData: OrderData) => {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to add order");
+    const errorDetails = await response.json();
+    throw new Error(errorDetails.message || "Failed to add order");
   }
 
   return response.json();
 };
 
-const useAddOrder = () => {
+type Mode = "add" | "update";
+
+const useOrderMutation = (mode: Mode) => {
   const queryClient = useQueryClient();
   const { err, success } = useToaster();
+
+  const mutationFn = mode === "add" ? addOrder : updateOrder;
+
   return useMutation({
-    mutationFn: addOrder,
+    mutationFn,
     onSuccess: (data) => {
       queryClient.invalidateQueries(queryKeys.orders as any);
-      console.log("Order added:", data);
-      success("Order added successfully");
+      const message =
+        mode === "add"
+          ? "Order added successfully"
+          : "Order updated successfully";
+      console.log(message, data);
+      success(message);
     },
     onError: (error: any) => {
-      // Handle error (e.g., show an error message to the user)
-      console.error("Error adding order:", error);
-      err(`Error adding order: ${error.message}`);
+      const message =
+        mode === "add"
+          ? `Error adding order: ${error.message}`
+          : `Error updating order: ${error.message}`;
+      console.error(message);
+      err(message);
     },
   });
 };
 
-export default useAddOrder;
+export default useOrderMutation;
